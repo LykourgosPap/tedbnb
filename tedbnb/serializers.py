@@ -1,19 +1,12 @@
 from django.contrib.auth import update_session_auth_hash
 
 from rest_framework import serializers
-
+from rest_framework.exceptions import ValidationError
+from rest_framework.serializers import CharField,EmailField
 from tedbnb.models import tedbnbhouses,tedbnbrent,tedbnbuser
+from django.db.models import Q
 
-from tedbnb.permissions import (
-    IsAccountOwner,
-    IsUserVerified,
-)
 
-from rest_framework.permissions import (
-    IsAdminUser,
-    AllowAny,
-    IsAuthenticated,
-)
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
 
@@ -60,6 +53,37 @@ class UserSerializer(serializers.ModelSerializer):
             update_session_auth_hash(self.context.get('request'), instance)
 
             return instance
+
+class UserLoginSerializer(serializers.ModelSerializer):
+    token = CharField(allow_blank=True, read_only=True)
+    email = EmailField(required=False, allow_blank=True)
+    username = CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = tedbnbuser
+        fields = [
+            'username',
+            'email',
+            'password',
+            'token',
+        ]
+        extra_kwargs = {"password":
+                            {"write_only": True}
+                       }
+
+    def validate(self, data):
+        email = data.get("email", None)
+        username = data.get("username", None)
+        password = data.get("password", None)
+
+        if not email and not username:
+            raise ValidationError("Username or Email is needed for logging in.")
+
+        user = tedbnbuser.objects.filter(
+            Q(email=email)|
+            Q(username=username)
+        )
+
 
 class HouseSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True, required=False)

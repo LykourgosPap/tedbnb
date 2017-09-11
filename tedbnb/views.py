@@ -1,8 +1,8 @@
 from datetime import date
-from django.db.models import Manager
+from django.db.models import Manager, Q
 from django.views.generic import TemplateView
-from django_filters.rest_framework import filters
 from rest_framework import permissions, viewsets, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.generics import (
     ListAPIView,
@@ -13,9 +13,12 @@ from rest_framework.generics import (
 )
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from rest_framework.views import APIView
+
 from tedbnb.models import tedbnbuser,tedbnbhouses,tedbnbrent
 from tedbnb.permissions import IsAccountOwner,IsUserVerified,IsObjectOwner
-from tedbnb.serializers import UserSerializer, HouseSerializer, HouseEditSerializer, RentSerializer
+from tedbnb.serializers import UserSerializer, HouseSerializer, HouseEditSerializer, RentSerializer, UserLoginSerializer
 
 
 class IndexView(TemplateView):
@@ -49,6 +52,44 @@ class UserViewSet(viewsets.ModelViewSet):
                 'status': 'Bad request',
                 'message': 'Account could not be created with received data.'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginUserView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = UserLoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        serializer = UserLoginSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            new_data = serializer.data
+            return Response(new_data, status=HTTP_200_OK)
+        return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
+
+    def validate(self, data):
+        print("fdsfdsadsafhdsjgbjfdsgsjfdgbkjfdsgsfdgfdskngjfjsdfghsdjfghjdsfkghhsjfdkh")
+        email = data.get("email", None)
+        username = data.get("username", None)
+        password = data.get("password", None)
+
+        if not email and not username:
+            raise ValidationError("Username or Email is required for logging in.")
+
+        user = tedbnbuser.objects.filter(Q(username=username) | Q(email=email)).distinct()
+
+        if user.exists() and user.count() == 1:
+            user_obj = user.first()
+        else:
+            raise ValidationError("This username/email is not Valid.")
+
+        if user_obj:
+            if not user_obj.check_password(password):
+                raise ValidationError("Incorrect credentials,please try again.")
+
+        data['token'] = "SOME RANDOM TOKEN"
+        return data
+
+
 
 
 class HouseCreateApiView(CreateAPIView):
@@ -95,6 +136,6 @@ class RentListApiView(ListAPIView):
         date_until = self.request.query_params.get('enddate', None)
         print(date_from,date_until)
         date_now = date.today()
-        query = "SELECT * from tedbnb_tedbnbhouses h WHERE NOT EXISTS (select * from tedbnb_tedbnbrent where (rentedfrom>='%s' OR renteduntil<='%s') AND  h.id=id) AND availablefrom<'%s' AND availableuntil>'%s'" %(date_until,date_from,date_from,date_until)
+        query = "SELECT * from tedbnb_tedbnbhouses h WHERE NOT EXISTS (SELECT * from tedbnb_tedbnbrent WHERE ((rentedfrom BETWEEN '%s' AND '%s') OR (renteduntil BETWEEN '%s' AND '%s')) AND  h.id=id) AND availablefrom<'%s' AND availableuntil>'%s' ORDER BY price" %(date_from,date_until,date_from,date_until,date_from,date_until)
         queryset = tedbnbhouses.objects.raw(query)
         return queryset
