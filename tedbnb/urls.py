@@ -1,4 +1,5 @@
 from django.conf.urls import url, include
+from rest_framework_jwt.views import obtain_jwt_token, refresh_jwt_token
 
 from tedbnb.views import (
     UserViewSet,
@@ -23,6 +24,8 @@ router.register(r'users', UserViewSet)
 
 urlpatterns = [
     url(r'^api/login$', LoginUserView.as_view(), name='LoginApiView'),
+    url(r'^api-token-auth/', obtain_jwt_token),
+    url(r'^api-token-refresh/', refresh_jwt_token),
     url(r'^api/houses$', HouseListApiView.as_view(), name='HouseListApiView'),
     url(r'^api/houses/create$', HouseCreateApiView.as_view(), name='HouseCreateApiVew'),
     url(r'^api/houses/(?P<pk>\d+)/$', HouseDetailApiView.as_view(), name='HouseDetailApiView'),
@@ -31,5 +34,6 @@ urlpatterns = [
     url(r'^api/rent$', RentListApiView.as_view(), name='RentListApiView'),
     url(r'^api/rent/create$', RentCreateApiView.as_view(), name='RentCreateApiVew'),
     url(r'^api/', include(router.urls, namespace='api')),
+    url(r'^rest-auth/', include('rest_auth.urls')),
     url(r'^$', views.IndexView.as_view(), name='index'),
 ]

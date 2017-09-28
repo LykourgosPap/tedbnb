@@ -17,7 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('created_at', 'updated_at',)
         write_only_fields = ('password',)
 
-        def create(self, instance, validated_data):
+        def create(self, validated_data):
             id = validated_data('id')
             email = validated_data('email')
             created_at = validated_data('created_at')
@@ -37,7 +37,6 @@ class UserSerializer(serializers.ModelSerializer):
                 about = about,
                 type = type,
             )
-
             user_obj.setpassword(password)
             user_obj.save()
 
@@ -53,6 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
             update_session_auth_hash(self.context.get('request'), instance)
 
             return instance
+
 
 class UserLoginSerializer(serializers.ModelSerializer):
     token = CharField(allow_blank=True, read_only=True)
@@ -75,14 +75,25 @@ class UserLoginSerializer(serializers.ModelSerializer):
         email = data.get("email", None)
         username = data.get("username", None)
         password = data.get("password", None)
+        print(email, username)
 
-        if not email and not username:
-            raise ValidationError("Username or Email is needed for logging in.")
+        if (not email) and (not username):
+            raise ValidationError("Username or Email is required for logging in.")
 
-        user = tedbnbuser.objects.filter(
-            Q(email=email)|
-            Q(username=username)
-        )
+        user = tedbnbuser.objects.filter(Q(username=username) | Q(email=email)).distinct()
+
+        if user.exists() and user.count() == 1:
+            user_obj = user.first()
+        else:
+            raise ValidationError("This username/email is not Valid.")
+
+        if user_obj:
+            if not user_obj.check_password(password):
+                raise ValidationError("Incorrect credentials,please try again.")
+
+        data['token'] = "SOME RANDOM TOKEN"
+
+        return data
 
 
 class HouseSerializer(serializers.ModelSerializer):

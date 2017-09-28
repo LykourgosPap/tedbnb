@@ -15,7 +15,7 @@ class tedbnbuser(AbstractUser, PermissionsMixin):
     updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['email', 'first_name', 'last_name', 'type']
+    REQUIRED_FIELDS = ['email', 'first_name', 'last_name', 'type', 'password']
 
     def create_superuser(self, username, email, first_name, last_name, password):
         u = self.create_user(username, email, first_name, last_name, password)
