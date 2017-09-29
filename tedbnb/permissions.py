@@ -1,5 +1,7 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
+from tedbnb.models import tedbnbhouses
+
 
 class IsAccountOwner(BasePermission):
     message = 'Login in as this user before changing it'
@@ -29,8 +31,15 @@ class IsUserVerified(BasePermission):
 
                 return True
 
-class IsObjectOwner(BasePermission):
+class IsHouseOwner(BasePermission):
     message = 'User must be the owner of house'
 
     def has_object_permission(self, request, view, obj):
-        return obj.userid.id == request.user.id
+        house = tedbnbhouses.objects.filter(id=obj.house.id)
+        print(house[0].userid, request.user)
+        if (house[0].userid == request.user):
+            perm = True
+        else:
+            perm = False
+        print(perm)
+        return perm

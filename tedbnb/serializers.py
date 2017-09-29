@@ -3,7 +3,7 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import CharField,EmailField
-from tedbnb.models import tedbnbhouses,tedbnbrent,tedbnbuser
+from tedbnb.models import tedbnbhouses,tedbnbrent,tedbnbuser,tedbnbhouseimages,tedbnbhousereviews,tedbnbusercomments
 from django.db.models import Q
 
 
@@ -114,3 +114,21 @@ class RentSerializer(serializers.ModelSerializer):
     class Meta:
         model = tedbnbhouses
         exclude = ('availablefrom','availableuntil',)
+
+class ReviewSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = tedbnbhousereviews
+        fields = '__all__'
+
+class CommentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = tedbnbusercomments
+        fields = '__all__'
+
+class HouseImSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = tedbnbhouseimages
+        fields = '__all__'

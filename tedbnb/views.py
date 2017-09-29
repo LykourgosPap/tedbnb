@@ -1,6 +1,7 @@
 from datetime import date
 from django.db.models import Manager, Q
 from django.views.generic import TemplateView
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, viewsets, status
 from rest_framework.response import Response
 from rest_framework.generics import (
@@ -9,15 +10,17 @@ from rest_framework.generics import (
     UpdateAPIView,
     DestroyAPIView,
     CreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+    ListCreateAPIView,
 )
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
-from tedbnb.models import tedbnbuser,tedbnbhouses,tedbnbrent
-from tedbnb.permissions import IsAccountOwner,IsUserVerified,IsObjectOwner
-from tedbnb.serializers import UserSerializer, HouseSerializer, HouseEditSerializer, RentSerializer, UserLoginSerializer, ValidationError
+from tedbnb.models import tedbnbuser,tedbnbhouses,tedbnbrent, tedbnbhousereviews, tedbnbhouseimages, tedbnbusercomments
+from tedbnb.permissions import IsAccountOwner, IsUserVerified, IsHouseOwner
+from tedbnb.serializers import UserSerializer, HouseSerializer, HouseEditSerializer, RentSerializer, UserLoginSerializer, ReviewSerializer, HouseImSerializer, CommentSerializer
 
 
 class IndexView(TemplateView):
@@ -74,11 +77,14 @@ class HouseCreateApiView(CreateAPIView):
     serializer_class = HouseEditSerializer
 
     def perform_create(self, serializer):
+        print(self.request.user)
         serializer.save(userid=self.request.user)
 
 class HouseListApiView(ListAPIView):
     serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated, IsObjectOwner]
+    permission_classes = [IsAuthenticated, IsHouseOwner]
+    queryset = tedbnbhouses.objects.all()
+
     def get_queryset(self):
         user = self.request.user
         return tedbnbhouses.objects.filter(userid=user)
@@ -86,10 +92,10 @@ class HouseListApiView(ListAPIView):
 class HouseDetailApiView(RetrieveAPIView):
     queryset = tedbnbhouses.objects.all()
     serializer_class = HouseSerializer
-    #permission_classes = [AllowAny]
+    permission_classes = [AllowAny]
 
 class HouseUpdateApiView(UpdateAPIView):
-    permission_classes = [IsObjectOwner]
+    permission_classes = [IsHouseOwner]
     queryset = tedbnbhouses.objects.all()
     serializer_class = HouseEditSerializer
 
@@ -113,6 +119,45 @@ class RentListApiView(ListAPIView):
         date_until = self.request.query_params.get('enddate', None)
         date_until = date_until.replace("%27", "'")
         query = "SELECT * from tedbnb_tedbnbhouses h WHERE NOT EXISTS (SELECT * from tedbnb_tedbnbrent WHERE ((rentedfrom BETWEEN %s AND %s) OR (renteduntil BETWEEN %s AND %s)) AND  h.id=id) AND availablefrom<%s AND availableuntil>%s ORDER BY price" %(date_from,date_until,date_from,date_until,date_from,date_until)
-        print(query)
         queryset = tedbnbhouses.objects.raw(query)
         return queryset
+
+class ReviewCreateApiView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsUserVerified]
+    queryset = tedbnbhouses.objects.all()
+    serializer_class = ReviewSerializer
+    filter_fields = ('house',)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class ReviewDetailApiView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, IsHouseOwner]
+    queryset = tedbnbhousereviews
+    serializer_class = ReviewSerializer
+
+class CommentCreateApiView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = tedbnbhouses.objects.all()
+    serializer_class = CommentSerializer
+    filter_fields = ('user',)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class CommentDetailApiView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = tedbnbhousereviews
+    serializer_class = CommentSerializer
+
+class PhotoCreateApiView(ListCreateAPIView):
+    permission_classes = (IsAuthenticated, IsHouseOwner)
+    queryset = tedbnbhouseimages.objects.all()
+    serializer_class = HouseImSerializer
+    filter_fields = ('house',)
+
+
+class PhotoDetailApiView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, IsHouseOwner]
+    queryset = tedbnbhousereviews
+    serializer_class = HouseImSerializer
