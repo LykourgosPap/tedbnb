@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from django.db.models import Manager, Q
 from django.views.generic import TemplateView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -82,7 +82,7 @@ class HouseCreateApiView(CreateAPIView):
 
 class HouseListApiView(ListAPIView):
     serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated, IsHouseOwner]
+    permission_classes = [AllowAny]
     queryset = tedbnbhouses.objects.all()
 
     def get_queryset(self):
@@ -118,27 +118,32 @@ class RentListApiView(ListAPIView):
         date_from = date_from.replace("%27", "'")
         date_until = self.request.query_params.get('enddate', None)
         date_until = date_until.replace("%27", "'")
-        query = "SELECT * from tedbnb_tedbnbhouses h WHERE NOT EXISTS (SELECT * from tedbnb_tedbnbrent WHERE ((rentedfrom BETWEEN %s AND %s) OR (renteduntil BETWEEN %s AND %s)) AND  h.id=id) AND availablefrom<%s AND availableuntil>%s ORDER BY price" %(date_from,date_until,date_from,date_until,date_from,date_until)
+        start_date = datetime.strptime(date_until, "'%Y-%m-%d'")
+        end_date = datetime.strptime(date_from, "'%Y-%m-%d'")
+        days = abs((end_date - start_date).days)
+        persons = self.request.query_params.get('persons',None)
+        lng = self.request.query_params.get('lng', None)
+        lat = self.request.query_params.get('lat', None)
+        query = "SELECT * from tedbnb_tedbnbhouses h WHERE NOT EXISTS (SELECT * from tedbnb_tedbnbrent WHERE ((rentedfrom BETWEEN %s AND %s) OR (renteduntil BETWEEN %s AND %s)) AND  h.id=id) AND availablefrom<%s AND availableuntil>%s AND persons>=%d AND (lat BETWEEN %f AND %f) AND (lng BETWEEN %f AND %f) AND  %d>=mindays ORDER BY price" %(date_from,date_until,date_from,date_until,date_from,date_until,int(persons),float(lat)-0.2,float(lat)+0.2,float(lng)-0.2,float(lng)+0.2,int(days))
         queryset = tedbnbhouses.objects.raw(query)
         return queryset
 
 class ReviewCreateApiView(ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsUserVerified]
-    queryset = tedbnbhouses.objects.all()
+    queryset = tedbnbhousereviews.objects.all()
     serializer_class = ReviewSerializer
     filter_fields = ('house',)
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 class ReviewDetailApiView(RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated, IsHouseOwner]
+    permission_classes = [AllowAny]
     queryset = tedbnbhousereviews
     serializer_class = ReviewSerializer
 
+
 class CommentCreateApiView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = tedbnbhouses.objects.all()
+    queryset = tedbnbusercomments.objects.all()
     serializer_class = CommentSerializer
     filter_fields = ('user',)
 
@@ -146,18 +151,24 @@ class CommentCreateApiView(ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 class CommentDetailApiView(RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
-    queryset = tedbnbhousereviews
+    permission_classes = [AllowAny]
+    queryset = tedbnbusercomments
     serializer_class = CommentSerializer
 
-class PhotoCreateApiView(ListCreateAPIView):
-    permission_classes = (IsAuthenticated, IsHouseOwner)
+class PhotoCreateApiView(CreateAPIView):
+    permission_classes = [IsAuthenticated, IsHouseOwner]
+    queryset = tedbnbhouseimages.objects.all()
+    serializer_class = HouseImSerializer
+    filter_fields = ('house',)
+
+class PhotoListApiView(ListAPIView):
+    permission_classes = [AllowAny]
     queryset = tedbnbhouseimages.objects.all()
     serializer_class = HouseImSerializer
     filter_fields = ('house',)
 
 
 class PhotoDetailApiView(RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated, IsHouseOwner]
+    permission_classes = [AllowAny]
     queryset = tedbnbhousereviews
     serializer_class = HouseImSerializer

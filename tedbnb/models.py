@@ -29,6 +29,9 @@ class tedbnbuser(AbstractUser, PermissionsMixin):
     def __str__(self):
         return self.username
 
+    def __unicode__(self):
+        return '%s' % (self.username)
+
 class tedbnbhouses(models.Model):
     userid = models.ForeignKey(tedbnbuser, on_delete=models.CASCADE)
     persons = models.IntegerField(null=False)
@@ -61,7 +64,8 @@ class tedbnbrent(models.Model):
 
 class tedbnbhouseimages(models.Model):
     house = models.ForeignKey(tedbnbhouses, on_delete=models.CASCADE)
-    photo = models.ImageField(upload_to='images/houses/')
+    photo = models.ImageField(upload_to='images/houses/', blank=True)
+
 
 class tedbnbusercomments(models.Model):
     user = models.ForeignKey(tedbnbuser, on_delete=models.SET(-1))
@@ -72,5 +76,7 @@ class tedbnbhousereviews(models.Model):
     house = models.ForeignKey(tedbnbhouses, on_delete=models.CASCADE)
     star = models.IntegerField()
     review = models.TextField(max_length=200, blank=True, null=True)
-    user = models.ForeignKey(tedbnbuser, on_delete=models.SET(-1))
+    user = models.ForeignKey(tedbnbuser, related_name='author', on_delete=models.SET(-1))
+
+
 

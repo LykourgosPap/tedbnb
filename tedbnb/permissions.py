@@ -22,11 +22,11 @@ class IsUserVerified(BasePermission):
         else:
             if request.user:
                 if request.user.type == 2:
-                    self.message = 'User is not yet approved my admin'
+                    self.message = 'User is not yet approved by admin'
                     return False
 
                 if request.user.type == 0:
-                    self.message = 'User is not renter type'
+                    self.message = 'User is not host type'
                     return False
 
                 return True
@@ -36,10 +36,8 @@ class IsHouseOwner(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         house = tedbnbhouses.objects.filter(id=obj.house.id)
-        print(house[0].userid, request.user)
         if (house[0].userid == request.user):
             perm = True
         else:
             perm = False
-        print(perm)
         return perm

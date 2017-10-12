@@ -1,4 +1,5 @@
 from django.contrib.auth import update_session_auth_hash
+from drf_extra_fields.fields import Base64ImageField
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -9,11 +10,12 @@ from django.db.models import Q
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
+    image = Base64ImageField(required=False)
 
     class Meta:
         model = tedbnbuser
         fields = ('id', 'email', 'username', 'created_at', 'updated_at',
-                  'first_name', 'last_name', 'about', 'type', 'password',)
+                  'first_name', 'last_name', 'about', 'type', 'password', 'image')
         read_only_fields = ('created_at', 'updated_at',)
         write_only_fields = ('password',)
 
@@ -27,6 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
             about = validated_data('about')
             type = validated_data('type')
             password = validated_data('password')
+            image = validated_data('image')
             user_obj = tedbnbuser(
                 id = id,
                 email = email,
@@ -36,6 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
                 last_name = last_name,
                 about = about,
                 type = type,
+                photo = image,
             )
             user_obj.setpassword(password)
             user_obj.save()
@@ -45,7 +49,8 @@ class UserSerializer(serializers.ModelSerializer):
             instance.save()
 
             password = validated_data.get('password', None)
-
+            image = validated_data.get('image', None)
+            instance.photo = image
             instance.set_password(password)
             instance.save()
 
@@ -112,14 +117,16 @@ class HouseEditSerializer(serializers.ModelSerializer):
 class RentSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = tedbnbhouses
-        exclude = ('availablefrom','availableuntil',)
+        model = tedbnbrent
+        fields = '__all__'
 
 class ReviewSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(read_only=True, required=False, slug_field='username')
 
     class Meta:
         model = tedbnbhousereviews
-        fields = '__all__'
+        fields = ('house', 'star', 'review', 'user')
+        read_only_fields = ('user',)
 
 class CommentSerializer(serializers.ModelSerializer):
 
@@ -128,7 +135,22 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class HouseImSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(required=False)
 
     class Meta:
         model = tedbnbhouseimages
-        fields = '__all__'
+        fields = ('house', 'image', 'photo')
+
+    def create(self, validated_data):
+        house = validated_data['house']
+        if not validated_data['photo']:
+            photo = validated_data['image']
+        else:
+            photo = validated_data['photo']
+        houseimage = tedbnbhouseimages(
+            house = house,
+            photo = photo,
+        )
+        houseimage.save()
+        return houseimage
+
