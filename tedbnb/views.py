@@ -20,7 +20,7 @@ from rest_framework.views import APIView
 
 from tedbnb.models import tedbnbuser,tedbnbhouses,tedbnbrent, tedbnbhousereviews, tedbnbhouseimages, tedbnbusercomments
 from tedbnb.permissions import IsAccountOwner, IsUserVerified, IsHouseOwner
-from tedbnb.serializers import UserSerializer, HouseSerializer, HouseEditSerializer, RentSerializer, UserLoginSerializer, ReviewSerializer, HouseImSerializer, CommentSerializer
+from tedbnb.serializers import UserSerializer, HouseSerializer, HouseEditSerializer, RentSerializer, UserLoginSerializer, ReviewSerializer, HouseImSerializer, CommentSerializer, ReviewCreateSerializer
 
 
 class IndexView(TemplateView):
@@ -128,11 +128,16 @@ class RentListApiView(ListAPIView):
         queryset = tedbnbhouses.objects.raw(query)
         return queryset
 
-class ReviewCreateApiView(ListCreateAPIView):
-    permission_classes = [IsAuthenticated, IsUserVerified]
+class ReviewApiView(ListAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = tedbnbhousereviews.objects.all()
     serializer_class = ReviewSerializer
     filter_fields = ('house',)
+
+class ReviewCreateApiView(CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = tedbnbhousereviews.objects.all()
+    serializer_class = ReviewCreateSerializer
 
 
 class ReviewDetailApiView(RetrieveUpdateDestroyAPIView):

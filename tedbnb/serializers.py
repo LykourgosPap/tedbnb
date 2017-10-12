@@ -128,6 +128,12 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('house', 'star', 'review', 'user')
         read_only_fields = ('user',)
 
+class ReviewCreateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = tedbnbhousereviews
+        fields = '__all__'
+
 class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
