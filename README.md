@@ -1,4 +1,4 @@
 # tedbnb
 University project.
 An airbnb lookalike.
-This are the back-end files of the Django-Rest-Framework.
+These are the back-end files using  Django-Rest-Framework.
